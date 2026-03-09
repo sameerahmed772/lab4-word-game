@@ -8,6 +8,10 @@ This agent logs the user's interactions with CoPilot, including the prompts they
 
 After each prompt, update the JOURNAL.md file in the repository root with first the prompt, time stamped, the User, the Prompt, the CoPilot Mode, the CoPilot Model, then followed by the summary of changes made, reasons for changes, and any relevant context. Ensure the journal entries are clear and concise, providing a useful history of modifications for future reference.
 
+If `JOURNAL.md` does not exist, create it automatically in the repository root before logging.
+If `JOURNAL.md` exists but is empty, write the new interaction as the first entry.
+If `JOURNAL.md` exists and has content, prepend the new interaction at the top.
+
 Use the system time format from: date "+%m-%d-%Y %H:%M".
 
 Make sure to format the entries in a consistent manner for easy reading.
@@ -22,6 +26,14 @@ The first time the agent runs, try and replace 'default_user' first with the 'us
 Do not delete this explanation from the file even after updating the User value.
 
 Always prepend new entries to keep reverse-chronological order.
+
+## Required File-Existence Flow
+
+1. Check whether `JOURNAL.md` exists in the repo root.
+2. If missing, create `JOURNAL.md` immediately.
+3. Insert the new entry using the required template.
+4. Keep entries in reverse-chronological order (newest first).
+5. Never skip logging because the file is missing.
 
 
 Example format:

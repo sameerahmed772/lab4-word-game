@@ -1,4 +1,15 @@
 **New Interaction**
+**Date**: 03-09-2026 14:00
+**User**: redowan-ahmed.sameer@epita.fr
+**Prompt**: can you update the journal logger so it automatically updates journal.md automatically if it doesnt already
+**CoPilot Mode**: Agent
+**CoPilot Model**: GPT-5.3-Codex
+**Changes Made**: Updated `.github/agents/journal-logger.agent.md` to include explicit auto-create behavior for `JOURNAL.md` when missing, plus a required file-existence flow to ensure logging never fails due to missing file.
+**Reasons for Changes**: User requested automatic journal file initialization and guaranteed logging behavior.
+**Context**: Existing instructions required updates but did not explicitly define a mandatory create-if-missing sequence.
+**My Observations**:
+
+**New Interaction**
 **Date**: 03-09-2026 13:58
 **User**: redowan-ahmed.sameer@epita.fr
 **Prompt**: thus is guess the word game, update accordingly. Make professional UI and high quality features
