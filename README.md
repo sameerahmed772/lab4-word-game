@@ -1,18 +1,25 @@
-# Lab 4 - Word Game
+# Lab 4 - Guess the Word (Professional Edition)
 
-A command-line word guessing game written in Python.
+A polished desktop Guess the Word game built with Python and Tkinter.
 
-## Features
+## Highlights
 
-- Multiple categories (`animals`, `technology`, `geography`)
-- Hint system (one hint per round)
-- Score system based on remaining attempts
-- Persistent player stats stored locally in `game_stats.json`
-- Simple menu for play/stats/quit
+- Professional graphical interface (card layout, action bar, status feedback)
+- On-screen keyboard plus direct text input
+- Category selector (`animals`, `technology`, `geography`)
+- Difficulty modes (`Easy`, `Medium`, `Hard`) with adaptive attempts, timer, and scoring
+- Live round timer with automatic loss on timeout
+- Hint system with score penalty
+- Persistent advanced stats:
+	- games played, wins, losses, win rate
+	- total score, best score
+	- current streak, best streak
+- Stats reset action for clean practice sessions
 
 ## Requirements
 
 - Python 3.9+
+- Tkinter (included in standard Python distribution on most systems)
 
 ## Run
 
@@ -20,29 +27,30 @@ A command-line word guessing game written in Python.
 python3 main.py
 ```
 
-## How To Play
+## Gameplay
 
-1. Choose `Play` from the menu.
-2. Pick a category.
-3. Guess letters one by one.
-4. Type `hint` once per round if you need help.
-5. Win by revealing the full word before attempts reach 0.
+1. Select a category and difficulty.
+2. Click `Start New Round`.
+3. Guess letters using keyboard buttons or by typing a letter and pressing Enter.
+4. Optionally use one hint (penalty applies).
+5. Win before attempts run out or timer reaches zero.
 
-## Scoring
+## Scoring Model
 
-- Base score: `attempts_left * 10`
-- If you use a hint: `-10` penalty
-- Score floor: `0`
+- Base score uses remaining attempts and selected difficulty multiplier.
+- Time bonus rewards faster solutions.
+- Hint usage applies difficulty-specific penalty.
+- Minimum score per round is `0`.
 
-## Project Structure
+## Project Files
 
-- `main.py`: game logic and CLI
-- `README.md`: usage instructions
-- `REPORT.md`: implementation summary
-- `JOURNAL.md`: interaction/change log
+- `main.py`: complete Tkinter app and game logic
+- `README.md`: setup and usage guide
+- `REPORT.md`: technical implementation summary
+- `JOURNAL.md`: interaction/change history
 
-## Future Improvements
+## Potential Next Enhancements
 
-- Add difficulty levels and custom word lists
-- Add unit tests for core functions
-- Add leaderboard for multiple players
+- Unit and integration tests for game logic
+- External word-pack loading from JSON files
+- Multiplayer local profiles and leaderboard view

@@ -1,32 +1,39 @@
-# Report - Lab 4 Word Game
+# Report - Guess the Word Professional Upgrade
 
 ## Objective
 
-Improve the repository from an empty baseline into a complete and maintainable Python word game project.
+Update the project to explicitly be a high-quality Guess the Word game with a professional user interface and richer gameplay systems.
 
-## What Was Implemented
+## Major Improvements
 
-- Full CLI game flow with menu and replayable rounds
-- Category-based word bank with custom hints
-- Input validation for robust gameplay
-- Scoring model based on remaining attempts
-- Persistent stats (games played, wins, losses, total score, win rate)
-- User-facing documentation in `README.md`
+- Replaced command-line flow with a polished Tkinter desktop UI.
+- Added structured layout with controls panel, live game area, virtual keyboard, and stats dashboard.
+- Introduced difficulty profiles that adjust attempts, timer, and scoring impact.
+- Added per-round countdown timer and automatic timeout handling.
+- Upgraded stats system with streak tracking and best-score tracking.
 
-## Design Choices
+## Gameplay and UX Enhancements
 
-- Used a small `Stats` dataclass to keep state explicit and easier to maintain.
-- Kept gameplay logic in focused helper functions (`play_round`, `show_stats`, `choose_category`) to improve readability.
-- Stored stats in JSON to avoid external dependencies.
+- Dual input modes (text entry + clickable letter keyboard).
+- Real-time attempt and timer display.
+- Progress bar tied to remaining attempts.
+- In-context feedback/status messaging for each user action.
+- One-time hint with score penalty.
+- Round lifecycle management (start, active validation, finish, reveal answer).
 
-## Quality Improvements
+## Technical Design Choices
 
-- Added graceful fallback if stats file is corrupted or missing.
-- Prevented duplicate guesses and invalid inputs from breaking flow.
-- Organized project documentation for easier onboarding.
+- Kept dependency footprint minimal by using only Python standard library modules.
+- Used `dataclass` structures (`Stats`, `DifficultyConfig`, `RoundState`) for clear state modeling.
+- Isolated persistence in JSON file (`game_stats.json`) for portability and simplicity.
+- Added resilient loading behavior to recover from missing/corrupt stats files.
 
-## Next Steps
+## Current Quality Level
 
-- Add automated tests for scoring and game-state transitions.
-- Add optional word-list loading from external files.
-- Add configurable max attempts/difficulty via CLI flags.
+- Professional desktop presentation and consistent visual style.
+- More robust game logic and stronger user guidance.
+- Improved maintainability through modular methods in the app class.
+
+## Recommended Next Step
+
+- Split core game rules into a testable logic module and add automated tests for scoring and win/lose transitions.
