@@ -1,56 +1,23 @@
-# Lab 4 - Guess the Word (Professional Edition)
+# Guess The Word Game
 
-A polished desktop Guess the Word game built with Python and Tkinter.
+This is a simple console-based Hangman game made for the Generative AI for Software Engineering lab.
 
-## Highlights
+## Features
 
-- Professional graphical interface (card layout, action bar, status feedback)
-- On-screen keyboard plus direct text input
-- Category selector (`animals`, `technology`, `geography`)
-- Difficulty modes (`Easy`, `Medium`, `Hard`) with adaptive attempts, timer, and scoring
-- Live round timer with automatic loss on timeout
-- Hint system with score penalty
-- Persistent advanced stats:
-	- games played, wins, losses, win rate
-	- total score, best score
-	- current streak, best streak
-- Stats reset action for clean practice sessions
+* The game chooses a random word from a list.
+* It shows the hidden word with underscores (like `_ _ _ _`).
+* It tracks your guessed letters and remaining lives.
+* You can play again without restarting the program.
 
-## Requirements
+## How to Run the Game
 
-- Python 3.9+
-- Tkinter (included in standard Python distribution on most systems)
-
-## Run
+To play the game, open your terminal and run this command:
 
 ```bash
-python3 main.py
+python ./main.py
+
 ```
 
-## Gameplay
+## How to Run the Tests
 
-1. Select a category and difficulty.
-2. Click `Start New Round`.
-3. Guess letters using keyboard buttons or by typing a letter and pressing Enter.
-4. Optionally use one hint (penalty applies).
-5. Win before attempts run out or timer reaches zero.
-
-## Scoring Model
-
-- Base score uses remaining attempts and selected difficulty multiplier.
-- Time bonus rewards faster solutions.
-- Hint usage applies difficulty-specific penalty.
-- Minimum score per round is `0`.
-
-## Project Files
-
-- `main.py`: complete Tkinter app and game logic
-- `README.md`: setup and usage guide
-- `REPORT.md`: technical implementation summary
-- `JOURNAL.md`: interaction/change history
-
-## Potential Next Enhancements
-
-- Unit and integration tests for game logic
-- External word-pack loading from JSON files
-- Multiplayer local profiles and leaderboard view
+The tests are built directly into the file. When you run `python ./main.py`, the core logic tests run automatically first. If the tests pass, the game will start right after. If you see "All core logic tests passed!", you know the main function works correctly.
