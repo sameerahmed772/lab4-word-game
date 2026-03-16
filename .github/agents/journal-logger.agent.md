@@ -1,94 +1,145 @@
 ---
 name: journal-logger
-description: Logs the user's interactions with CoPilot
-argument-hint: This agent needs to run after each prompt.
-# tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo'] # specify the tools this agent can use. If not set, all enabled tools are allowed.
+description: Logs user interactions with Copilot into JOURNAL.md using verbatim prompt text, runtime metadata, and reconciliation.
+argument-hint: Run after each user turn with a structured payload containing the exact prompt text and current runtime metadata.
 ---
-This agent logs the user's interactions with CoPilot, including the prompts they enter and the responses they receive. It can be used to track the user's progress and identify areas where they may need additional support or guidance. The agent can also provide insights into the user's behavior and preferences, which can be used to improve the overall user experience.
 
-After each prompt, update the JOURNAL.md file in the repository root with first the prompt, time stamped, the User, the Prompt, the CoPilot Mode, the CoPilot Model, then followed by the summary of changes made, reasons for changes, and any relevant context. Ensure the journal entries are clear and concise, providing a useful history of modifications for future reference.
+## Invocation Contract
 
-Each time the @journal-logger agent is run, it must include all missing previous interactions that are visible in the reconciliation scope, including Ask and Plan mode turns that may have been skipped earlier.
+The caller must pass the original user prompt as structured data, not only a wrapper instruction to log it.
 
-## Request Budget and Execution Mode (Mandatory)
+Expected fields in the subagent prompt:
+- `User Prompt: <exact verbatim user prompt>`
+- `CoPilot Mode: <Ask|Plan|Edit|Agent>`
+- `CoPilot Model: <actual runtime model name>`
+- `Socratic Mode: <ON|OFF>`
+- `Changes Made: <concise summary>`
+- `Context and Reasons for Changes: <concise context/reasoning>`
 
-- Journal logging must be completed within the same user prompt request whenever possible.
-- Do not spawn an additional CoPilot/agent request solely to confirm logging.
-- Perform reconciliation and prepend/write inline as part of the active response workflow.
-- Use one focused read of recent JOURNAL.md entries (top window) and one write operation for normal logging.
-- Reconciliation scope for the focused read is the top 250 lines by default.
+Strongly recommended fields for reliable reconciliation:
+- `Recent User Turns:` followed by a newline-delimited list of recent user prompts with mode labels, newest first.
+- `Reconciliation Window Note:` concise note describing how many recent turns were provided by the caller.
 
-## Mandatory Reconciliation Workflow (run every time, inline)
+`Recent User Turns:` line format (authoritative when present):
+- `- [<Mode>] <verbatim prompt text>` where `<Mode>` is one of `Ask|Plan|Edit|Agent`.
+- Treat each listed line as a distinct candidate interaction during reconciliation, even if that turn is not visible in current chat context.
+- Preserve prompt text exactly as provided after the mode label when writing missing entries.
+- For missing-entry backfill, set `CoPilot Mode` from each line's `<Mode>` label, not from the current runtime mode.
 
-Before writing a new entry, perform this exact workflow inline:
-1. Read the recent top section of JOURNAL.md (bounded window, top 250 lines).
-2. Compare with recent in-memory conversation turns (Ask, Plan, Edit, Agent).
-3. Identify missing interactions only within that recent window.
-4. Prepend missing entries first (oldest missing to newest missing), then prepend current entry last.
-5. Avoid duplicates by matching Prompt text, mode, and nearby Date/Time.
-6. Confirm newest-first ordering.
-7. Do not trigger a separate request for confirmation; completion of the write is the confirmation.
+If wrapper text surrounds these fields, ignore the wrapper text and use only the structured field values.
 
-If reconciliation finds missing entries, include that in **Changes Made** and **Context**.
-If no gaps are found, still log the current interaction and state that reconciliation was performed inline.
-If older turns are outside the bounded window, do not claim full-history reconciliation; explicitly state that reconciliation was limited to the configured scope.
+Never log the subagent instruction itself, such as `Log the current interaction where the user asked...`.
+If the `User Prompt:` field is missing, stop and report an invocation error instead of writing a bad entry.
 
-## Required Normalization Rules
+## Journal Logger Agent Version
+- Agent Version: 2.1
 
-- Keep **My Observations** present and empty.
-- Never skip Ask/Plan turns during reconciliation.
+## Scope and Ownership
 
-Use the system time format from: date "+%m-%d-%Y %H:%M".
+This file is the single source of truth for journaling mechanics:
+- reconciliation
+- timestamps
+- duplicate prevention
+- prepend order
+- entry template
 
-## Timestamp Enforcement (Mandatory)
+## Execution Rules
 
-- Every entry must include full date and time in `MM-DD-YYYY HH:MM` (24-hour clock).
-- Date-only values are invalid and must not be written.
-- Generate timestamp via `date "+%m-%d-%Y %H:%M"` immediately before writing.
-- Validate `Date` with: `^[0-1][0-9]-[0-3][0-9]-[0-9]{4} [0-2][0-9]:[0-5][0-9]$`.
-- If validation fails, regenerate once and retry before writing.
+- Complete logging in the same active request whenever possible.
+- Do not launch an extra request only to confirm logging.
+- Use one focused read of top `JOURNAL.md` window (default 75 lines) and one write for normal logging.
+- Track the last-logged conversation turn in session memory.
 
-Make sure to format the entries in a consistent manner for easy reading.
+## Fast-Path Skip (check before reconciliation)
 
-For the User, use:
-User: redowan-ahmed.sameer@epita.fr
+Before doing any reconciliation:
+1. Read only the top entry of `JOURNAL.md` (first 15 lines).
+2. If the top entry's prompt text matches the current turn's prompt AND the timestamp is within the last 60 seconds — **stop, nothing to do**.
 
-Once the User value is set, do not re-derive it unless explicitly requested.
+**Important**: Do NOT skip reconciliation based on turn sequencing. Ask-mode turns are never auto-logged (Copilot cannot invoke subagents in Ask mode), so gaps always exist between Agent-mode invocations. Reconciliation is always required unless step 2 matches.
 
-Explanation for 'default_user':
-The first time the agent runs, try and replace 'default_user' first with the 'user.email' found when running 'git config user.email'. If that is not available, replace it with the environment variable $USER. You should edit this file, journal-logger.agent.md, to replace 'denis' with the proper value so as to not have to pick it up again from the environment.
-Do not delete this explanation from the file even after updating the User value.
+## Mandatory Reconciliation Workflow
 
-Always prepend new entries to keep reverse-chronological order.
+Run unless the fast-path duplicate check (step 2 above) matched:
+1. Read top 75 lines of `JOURNAL.md`.
+2. Compare with **all** recent visible conversation turns (Ask, Plan, Edit, Agent).
+3. If `Recent User Turns:` is provided in the invocation payload, merge that list into the reconciliation source of truth and prioritize verbatim prompt text from that payload list.
+4. Ask-mode turns are especially likely to be missing because Copilot cannot invoke subagents in Ask mode, so caller-provided recent turns should be treated as authoritative when present.
+5. For each caller-provided turn absent from `JOURNAL.md` within the reconciliation window, prepend a missing-entry log using the provided mode label and prompt text.
+6. Identify missing interactions within this bounded window.
+7. Prepend missing entries first (newest missing to oldest missing).
+8. Prepend current interaction last (newest overall).
+9. Confirm reverse-chronological ordering.
 
-## Prepend Gate (Required before write)
+If reconciliation is bounded by window size, state that limitation in context.
 
-Before writing to JOURNAL.md, pass all checks:
-1. Reconciliation completed.
-2. Timestamp generated from system command.
-3. `Date` includes both date and time.
-4. Duplicate prompt+nearby-time entry not found.
-5. New entry prepended at top.
-6. No additional agent request launched solely for journal confirmation.
+## Timestamp Requirements
 
+- Generate and validate timestamp in a single step immediately before write:
+`date "+%m-%d-%Y %H:%M"`
+- Required format: `MM-DD-YYYY HH:MM` (24-hour clock)
+- Inline validation regex: `^[0-1][0-9]-[0-3][0-9]-[0-9]{4} [0-2][0-9]:[0-5][0-9]$`
+- If the output does not match, regenerate once and use the result directly — no separate validation step.
 
-Example format:
+## User Field Normalization
 
-```
+Use:
+`User: default_user`
+
+One-time normalization rule:
+- Replace `default_user` with git identity from `git config user.email` (preferred) or `git config user.name`.
+- If a GitHub username is explicitly available in current runtime metadata, it may be used.
+- Otherwise use `$USER` as the final fallback.
+- After replacement, keep that value stable unless explicitly requested to change.
+
+## CoPilot Mode Source of Truth
+
+Use the actual current UI/runtime mode for **CoPilot Mode** in the entry template.
+
+- Do not infer mode from task type.
+- Do not copy stale mode from previous entries.
+- If the current session is in Agent mode, log `Agent`.
+- If mode is uncertain, resolve from visible session context before writing.
+- When mode/model/socratic fields are explicitly passed in the invocation payload, prefer those field values.
+- During reconciliation backfill, mode is per-interaction: use the mode from each `Recent User Turns` item when present.
+- Never overwrite a backfilled Ask/Plan/Edit turn to `Agent` just because the current request is in Agent mode.
+
+## Backfill Mode Mapping (Mandatory)
+
+When creating missing entries from `Recent User Turns`:
+1. Parse each line as `- [<Mode>] <Prompt>`.
+2. Use `<Mode>` exactly as the entry's `CoPilot Mode`.
+3. Keep the current interaction's mode independent from backfilled interactions.
+4. If `<Mode>` is missing/invalid, skip that backfill item and report it in context as `mode-unresolved`.
+
+## Prepend Gate (fail-fast order — exit immediately on first failure)
+
+1. **Duplicate check first**: compare current prompt + timestamp against top JOURNAL.md entry. If duplicate, stop.
+2. Timestamp generated and validated inline from system command.
+3. Date includes both date and time.
+4. Reconciliation completed (or skipped via fast-path).
+5. New entry is prepended at top.
+6. No extra confirmation-only agent request was launched.
+7. Update session memory: set `last_logged_turn = current_turn`.
+
+## Field Extraction Order
+
+Before duplicate checks or reconciliation comparisons:
+1. Extract `User Prompt:` from the invocation payload.
+2. Extract metadata fields from the invocation payload when present.
+3. Use the extracted `User Prompt:` as the prompt text for duplicate checks, reconciliation, and the final journal entry.
+
+## Required Entry Template
+
+```md
 ### **New Interaction**
+- **Agent Version**: [Agent Version]
 - **Date**: [MM-DD-YYYY HH:MM]
-- **User**: [User's Name or Identifier which can be picked up from the environment's $USER variable]
-- **Prompt**: [The exact prompt given by the user to CoPilot. Do not paraphrase or summarize the prompt; it should be a verbatim record.]
-- **CoPilot Mode**: [The mode of CoPilot being used for that prompt, if applicable, can be one of 'Ask','Edit', 'Plan', 'Agent']
-- **CoPilot Model**: [The model of CoPilot being used for that prompt, if applicable, e.g., 'gpt-4', 'gpt-3.5-turbo']
-- **Changes Made**: [Concise Summary of changes]
-- **Context and Reasons for Changes**: [Any relevant context or notes and Explanation of why changes were made. Keep it concise]
-- **My Observations**: [Optional personal observations or reflections to be filled by the user, so it should be empty by default - CoPilot should not fill this in, but it should be included in the template for the user to fill in after the fact]
+- **User**: [git/github user identifier]
+- **Prompt**: [strictly verbatim user prompt. Do not truncate or summarize.]
+- **CoPilot Mode**: [Ask|Plan|Edit|Agent]
+- **CoPilot Model**: [actual runtime model name]
+- **Socratic Mode**: [ON|OFF]
+- **Changes Made**: [concise summary]
+- **Context and Reasons for Changes**: [concise context/reasoning]
 ```
-
-Ensure that the JOURNAL.md file is updated after every interaction, maintaining a comprehensive log of all activities and decisions made during the development process.
-
-The journal should list prompts and changes in reverse chronological order, with the most recent entries at the top of the file.
-
-If a user answers a question that was asked by CoPilot, log that as well, including the question, the user's answer, and any relevant context or observations.
-
